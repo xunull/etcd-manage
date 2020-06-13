@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shiguanghuxian/etcd-manage/program/common"
+	"github.com/xunull/etcd-manage/program/common"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

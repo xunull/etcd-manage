@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/shiguanghuxian/etcd-manage/program/config"
-	"go.etcd.io/etcd/clientv3"
-	"go.etcd.io/etcd/pkg/transport"
+	"github.com/xunull/etcd-manage/program/config"
+	"github.com/coreos/etcd/clientv3"
+	"github.com/coreos/etcd/pkg/transport"
 )
 
 // Etcd3Client etcd v3客户端

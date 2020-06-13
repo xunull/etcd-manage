@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"go.etcd.io/etcd/clientv3"
-	"go.etcd.io/etcd/mvcc/mvccpb"
+	"github.com/coreos/etcd/clientv3"
+	"github.com/coreos/etcd/mvcc/mvccpb"
 )
 
 // List 获取目录下列表
@@ -47,6 +47,7 @@ func (c *Etcd3Client) List(key string) (nodes []*Node, err error) {
 	} else {
 		if len(txnResp.Responses) > 0 {
 			rangeResp := txnResp.Responses[0].GetResponseRange()
+
 			return c.list(dir, rangeResp.Kvs)
 		} else {
 			// empty directory

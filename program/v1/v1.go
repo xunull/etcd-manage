@@ -12,10 +12,10 @@ import (
 	"time"
 
 	gin "github.com/gin-gonic/gin"
-	"github.com/shiguanghuxian/etcd-manage/program/common"
-	"github.com/shiguanghuxian/etcd-manage/program/config"
-	"github.com/shiguanghuxian/etcd-manage/program/etcdv3"
-	"github.com/shiguanghuxian/etcd-manage/program/logger"
+	"github.com/xunull/etcd-manage/program/common"
+	"github.com/xunull/etcd-manage/program/config"
+	"github.com/xunull/etcd-manage/program/etcdv3"
+	"github.com/xunull/etcd-manage/program/logger"
 )
 
 // V1 v1 版接口

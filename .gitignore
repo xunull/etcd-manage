@@ -22,3 +22,6 @@ bin/logs/*
 bin/etcd*
 
 tpls/dist/*
+
+
+.idea

@@ -1,5 +1,7 @@
 # etcd-manage
 
+etcd的go mod 真是一个坑
+
 本项目受到[e3w](https://github.com/soyking/e3w)启发
 
 项目旨在于方便开发者简单明了的查看、添加、修改和删除存储于etcd中的配置。

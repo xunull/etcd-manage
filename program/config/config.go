@@ -6,7 +6,7 @@ import (
 	"regexp"
 
 	"github.com/naoina/toml"
-	"github.com/shiguanghuxian/etcd-manage/program/common"
+	"github.com/xunull/etcd-manage/program/common"
 )
 
 // Config 配置
