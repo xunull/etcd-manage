@@ -10,16 +10,19 @@ import (
 
 // Node 需要使用到的模型
 type Node struct {
-	IsDir   bool   `json:"is_dir"`
-	Version int64  `json:"version,string"`
-	Value   string `json:"value"`
-	FullDir string `json:"full_dir"`
+	IsDir    bool    `json:"is_dir"`
+	Version  int64   `json:"version,string"`
+	Value    string  `json:"value"`
+	FullDir  string  `json:"full_dir"`
+	Title    string  `json:"title"`
+	Key      string  `json:"key"`
+	Expand   bool    `json:"expand"`
+	Children []*Node `json:"children"`
 }
 
 const (
-	ROLE_LEADER   = "leader"
-	ROLE_FOLLOWER = "follower"
-
+	ROLE_LEADER      = "leader"
+	ROLE_FOLLOWER    = "follower"
 	STATUS_HEALTHY   = "healthy"
 	STATUS_UNHEALTHY = "unhealthy"
 )
@@ -32,12 +35,22 @@ type Member struct {
 	DbSize int64  `json:"db_size"`
 }
 
-// NewNode 创建节点
-func NewNode(dir string, kv *mvccpb.KeyValue) *Node {
+func NewNode(key, dirname string) *Node {
+	n := Node{
+		IsDir:  true,
+		Key:    key,
+		Title:  dirname,
+		Expand: false,
+	}
+	return &n
+}
+
+// NewLeafNode 创建节点
+func NewLeafNode(dirname string, kv *mvccpb.KeyValue) *Node {
 	return &Node{
-		IsDir:   string(kv.Value) == DEFAULT_DIR_VALUE,
-		Value:   strings.TrimPrefix(string(kv.Key), dir),
-		FullDir: string(kv.Key),
+		IsDir:   false,
+		Key:     string(kv.Key),
+		Title:   dirname,
 		Version: kv.Version,
 	}
 }
@@ -91,11 +104,9 @@ func recursiveJsonMap(strs []string, node *Node, parent map[string]interface{}) 
 		return nil
 	}
 	if _, ok := parent[strs[0]]; ok == false {
-		if node.Value == DEFAULT_DIR_VALUE {
-			parent[strs[0]] = make(map[string]interface{}, 0)
-		} else {
-			parent[strs[0]] = formatValue(node.Value)
-		}
+
+		parent[strs[0]] = formatValue(node.Value)
+
 	}
 	val, ok := parent[strs[0]].(map[string]interface{})
 	if ok == false {

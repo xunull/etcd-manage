@@ -15,9 +15,6 @@ type Etcd3Client struct {
 	*clientv3.Client
 }
 
-const (
-	DEFAULT_DIR_VALUE = "etcdv3_dir_$2H#%gRe3*t"
-)
 
 var (
 	// EtcdClis etcd连接对象

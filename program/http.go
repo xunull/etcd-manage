@@ -22,7 +22,7 @@ func (p *Program) startAPI() {
 	router := gin.Default()
 
 	// 跨域问题
-	router.Use(p.middleware())
+	router.Use(p.corsMiddleware())
 
 	// 设置静态文件目录
 	router.GET("/ui/*w", p.handlerStatic)
@@ -45,6 +45,9 @@ func (p *Program) startAPI() {
 	} else {
 		apiV1 = router.Group("/v1")
 	}
+
+	apiV1 = router.Group("/v1")
+
 	apiV1.Use(p.middlewareEtcd()) // 注入etcd客户端
 	v1.V1(apiV1)
 
@@ -78,12 +81,14 @@ func (p *Program) startAPI() {
 }
 
 // 跨域中间件
-func (p *Program) middleware() gin.HandlerFunc {
+func (p *Program) corsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// gin设置响应头，设置跨域
 		c.Header("Access-Control-Allow-Origin", "*")
 		c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization, Access-Control-Allow-Origin")
+		c.Header("Access-Control-Allow-Headers", "Origin, "+
+			"Content-Type, Authorization, Access-Control-Allow-Origin,"+
+			"EtcdServerName, X-Etcd-Username, X-Etcd-Password")
 		c.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Content-Type")
 
 		//放行所有OPTIONS方法
@@ -93,28 +98,35 @@ func (p *Program) middleware() gin.HandlerFunc {
 	}
 }
 
+
 // etcd客户端中间件
 func (p *Program) middlewareEtcd() gin.HandlerFunc {
 	return func(c *gin.Context) {
+
 		// 获取登录用户名，查询角色
-		userIn := c.MustGet(gin.AuthUserKey)
-		userRole := ""
-		if userIn != nil {
-			user := userIn.(string)
-			if user == "" {
-				c.Set("userRole", "")
-			} else {
-				u := p.cfg.GetUserByUsername(user)
-				if u == nil {
-					c.Set("userRole", "")
-				} else {
-					userRole = u.Role
-					// 角色和用户信息
-					c.Set("userRole", u.Role)
-					c.Set("authUser", u)
-				}
-			}
-		}
+		//userIn := c.MustGet(gin.AuthUserKey)
+		//userRole := ""
+		//if userIn != nil {
+		//	user := userIn.(string)
+		//	if user == "" {
+		//		c.Set("userRole", "")
+		//	} else {
+		//		u := p.cfg.GetUserByUsername(user)
+		//		if u == nil {
+		//			c.Set("userRole", "")
+		//		} else {
+		//			userRole = u.Role
+		//			// 角色和用户信息
+		//			c.Set("userRole", u.Role)
+		//			c.Set("authUser", u)
+		//		}
+		//	}
+		//}
+
+		// 暂时不使用用户的功能
+		c.Set("userRole", "admin")
+		c.Set("authUser", "admin")
+		userRole := "admin"
 
 		// 绑定etcd连接
 		etcdServerName := c.GetHeader("EtcdServerName")

@@ -11,6 +11,75 @@ import (
 	"github.com/coreos/etcd/mvcc/mvccpb"
 )
 
+func (c *Etcd3Client) LsDir(key string) (nodes []*Node, err error) {
+	if key == "" {
+		return nil, errors.New("key is empty")
+	}
+	dir := key
+	if key != "/" {
+		key = strings.TrimRight(key, "/")
+		dir = key + "/"
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	kv := clientv3.NewKV(c.Client)
+
+	// 前缀查询,只读key
+	resp, err := kv.Get(ctx, dir, clientv3.WithPrefix(),
+		clientv3.WithKeysOnly(), clientv3.WithSort(clientv3.SortByKey, clientv3.SortAscend))
+
+	if err != nil {
+		return nil, err
+	} else {
+		return c.generateTree(dir, resp.Kvs)
+	}
+}
+
+func (c *Etcd3Client) generateTree(dir string, kvs []*mvccpb.KeyValue) (nodes []*Node, err error) {
+	set := make(map[string]*Node)
+	for _, kv := range kvs {
+		name := strings.TrimPrefix(string(kv.Key), dir)
+
+		nl := strings.Split(name, "/")
+		nLength := len(nl)
+		for i, n := range nl {
+			var dirname string
+			var key string
+
+			dirname = dir + strings.Join(nl[0:i], "/")
+			key = dir + strings.Join(nl[0:i+1], "/")
+			parent := set[dirname]
+			if parent == nil {
+				if i == nLength-1 {
+					parent = NewLeafNode(dirname, kv)
+				} else {
+					parent = NewNode(dirname, dirname)
+				}
+
+				set[dirname] = parent
+				if i == 0 {
+					nodes = append(nodes, parent)
+				}
+			}
+			cur := set[key]
+			if cur == nil {
+				if i == nLength-1 {
+					cur = NewLeafNode(key, kv)
+				} else {
+					cur = NewNode(key, n)
+				}
+
+				set[key] = cur
+				parent.Children = append(parent.Children, cur)
+			}
+
+		}
+
+	}
+
+	return nodes, nil
+}
+
 // List 获取目录下列表
 func (c *Etcd3Client) List(key string) (nodes []*Node, err error) {
 	if key == "" {
@@ -22,40 +91,19 @@ func (c *Etcd3Client) List(key string) (nodes []*Node, err error) {
 		key = strings.TrimRight(key, "/")
 		dir = key + "/"
 	}
+	ctx := context.Background()
+	//ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	//defer cancel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	kv := clientv3.NewKV(c.Client)
 
-	txn := c.Client.Txn(ctx)
-	txn.If(
-		clientv3.Compare(
-			clientv3.Value(key),
-			"=",
-			DEFAULT_DIR_VALUE,
-		),
-	).Then(
-		clientv3.OpGet(dir, clientv3.WithPrefix()),
-	)
+	resp, err := kv.Get(ctx, dir, clientv3.WithPrefix())
 
-	txnResp, err := txn.Commit()
 	if err != nil {
 		return nil, err
-	}
-
-	if !txnResp.Succeeded {
-		return nil, ErrorListKey
 	} else {
-		if len(txnResp.Responses) > 0 {
-			rangeResp := txnResp.Responses[0].GetResponseRange()
-
-			return c.list(dir, rangeResp.Kvs)
-		} else {
-			// empty directory
-			return []*Node{}, nil
-		}
+		return c.list(dir, resp.Kvs)
 	}
-
-	return []*Node{}, nil
 }
 
 // Value 获取一个key的值
@@ -70,7 +118,6 @@ func (c *Etcd3Client) Value(key string) (val *Node, err error) {
 	if resp.Kvs != nil && len(resp.Kvs) > 0 {
 		val = &Node{
 			Value:   string(resp.Kvs[0].Value),
-			FullDir: key,
 			Version: resp.Kvs[0].Version,
 		}
 	} else {
@@ -82,12 +129,13 @@ func (c *Etcd3Client) Value(key string) (val *Node, err error) {
 func (c *Etcd3Client) list(dir string, kvs []*mvccpb.KeyValue) ([]*Node, error) {
 	nodes := []*Node{}
 	for _, kv := range kvs {
+
 		name := strings.TrimPrefix(string(kv.Key), dir)
 		if strings.Contains(name, "/") {
 			// secondary directory
 			continue
 		}
-		nodes = append(nodes, NewNode(dir, kv))
+		nodes = append(nodes, NewLeafNode(dir, kv))
 	}
 	return nodes, nil
 }
@@ -107,17 +155,10 @@ func (c *Etcd3Client) ensureKey(key string) (string, string) {
 // Put 添加一个key
 func (c *Etcd3Client) Put(key string, value string, mustEmpty bool) error {
 	// log.Println(key)
-	key, parentKey := c.ensureKey(key)
+	key, _ = c.ensureKey(key)
 	//  需要判断的条件
 	cmp := make([]clientv3.Cmp, 0)
 
-	if parentKey != "" {
-		cmp = append(cmp, clientv3.Compare(
-			clientv3.Value(parentKey),
-			"=",
-			DEFAULT_DIR_VALUE,
-		))
-	}
 
 	if mustEmpty {
 		cmp = append(
@@ -129,14 +170,6 @@ func (c *Etcd3Client) Put(key string, value string, mustEmpty bool) error {
 			),
 		)
 	} else {
-		cmp = append(
-			cmp,
-			clientv3.Compare(
-				clientv3.Value(key),
-				"!=",
-				DEFAULT_DIR_VALUE,
-			),
-		)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -164,25 +197,14 @@ func (c *Etcd3Client) Put(key string, value string, mustEmpty bool) error {
 // Delete 删除key
 func (c *Etcd3Client) Delete(key string) error {
 	key = strings.TrimRight(key, "/")
-	dir := key + "/"
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	txn := c.Client.Txn(ctx)
-	// 如果是目录，删除整个目录
-	txn.If(
-		clientv3.Compare(
-			clientv3.Value(key),
-			"=",
-			DEFAULT_DIR_VALUE,
-		),
-	).Then(
-		clientv3.OpDelete(key),
-		clientv3.OpDelete(dir, clientv3.WithPrefix()),
-	).Else(
-		clientv3.OpDelete(key),
-	)
+
+	clientv3.OpDelete(key)
+
 
 	_, err := txn.Commit()
 	return err

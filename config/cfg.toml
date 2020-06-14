@@ -1,0 +1,26 @@
+# debug模式
+debug = false
+# 日志文件路径
+log_path = ""
+
+# http 监听端口
+[http]
+# 监听地址
+address = "0.0.0.0"
+# 监听端口
+port = 10280
+
+[[server]]
+title = "本地etcd"
+name = "local"
+address = ["192.168.10.11:2379"]
+key_prefix = "/"
+desc = "本机环境"
+roles = ["admin"]
+
+## 以下为用户列表 ##
+[[user]]
+username = "admin"
+password = "123456"
+role = "admin"
+

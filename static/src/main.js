@@ -24,33 +24,36 @@ Vue.use(VueCodemirror)
 
 Vue.config.productionTip = false;
 
-/* axios */
-// axios.defaults.baseURL = 'http://127.0.0.1:10280';
+if (process.env.NODE_ENV === 'development') {
+    /* axios */
+    axios.defaults.baseURL = 'http://127.0.0.1:10280';
+}
+
 
 // 请求拦截器
 axios.interceptors.request.use(function (config) {
-  // 读取本地是否存在用户信息
-  let etcdUserStr = localStorage.getItem('etcdUser');
-  // console.log(etcdUserStr)
-  if(etcdUserStr != null && typeof etcdUserStr != 'undefined'){
-    let etcdUser = JSON.parse(etcdUserStr);
-    if (typeof etcdUser.username != 'undefined' && etcdUser.username != ''){
-      config.headers['X-Etcd-Username'] = etcdUser.username;
+    // 读取本地是否存在用户信息
+    let etcdUserStr = localStorage.getItem('etcdUser');
+    // console.log(etcdUserStr)
+    if (etcdUserStr != null && typeof etcdUserStr != 'undefined') {
+        let etcdUser = JSON.parse(etcdUserStr);
+        if (typeof etcdUser.username != 'undefined' && etcdUser.username != '') {
+            config.headers['X-Etcd-Username'] = etcdUser.username;
+        }
+        if (typeof etcdUser.password != 'undefined' && etcdUser.password != '') {
+            config.headers['X-Etcd-Password'] = etcdUser.password;
+        }
     }
-    if (typeof etcdUser.password != 'undefined' && etcdUser.password != ''){
-      config.headers['X-Etcd-Password'] = etcdUser.password;
-    }
-  }
-  return config;
+    return config;
 }, function (error) {
-  return Promise.reject(error);
+    return Promise.reject(error);
 })
 
 
 Vue.prototype.$http = axios;
 
 // 语言
-Vue.locale = () => {};
+Vue.locale = () => { };
 
 const messages = {
     en: Object.assign(myen, en),
@@ -66,7 +69,7 @@ const i18n = new VueI18n({
 });
 
 new Vue({
-  router,
-  i18n,
-  render: h => h(App)
+    router,
+    i18n,
+    render: h => h(App)
 }).$mount('#app')

@@ -10,11 +10,18 @@ export default new Router({
       path: '/',
       name: 'home',
       component: Home,
-      children:[{
+      children:[
+    //       {
+    //     path: 'tree',
+    //     name: 'Tree',
+    //     component: ()=> import('./views/Tree.vue')
+    //   },
+      {
         path: 'keys',
         name: 'Keys',
         component: () => import('./views/Keys.vue')
-      },{
+      },
+      {
         path: 'members',
         name: 'Members',
         component: () => import('./views/Members.vue')
