@@ -14,10 +14,7 @@ etcd的go mod 真是一个坑
 2. 支持Basic Auth用户验证登录，可以通过配置文件添加用户并设置用户角色实现用户可访问etcd server的空。
 
 
-
 ## Demo
-
-demo地址： [Demo](http://140.143.234.132:10280/ui/#/keys)
 
 用户名：admin
 
